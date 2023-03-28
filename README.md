@@ -1,4 +1,4 @@
-# Simple dockerized Node.Js app
+# Simple dockerized Node.js app
 
 ## Building an image from Dockerfile
 Use docker build PATH_TO_YOUR_DIRECTORY to build an image. For convenience, you can add a tag to recognize it.

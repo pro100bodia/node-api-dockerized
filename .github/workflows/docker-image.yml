@@ -1,0 +1,67 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  IMAGE_NAME: "node-api-dockerized"
+  TAG: "latest"
+  DOCKERHUB_HOST: "docker.io/"      
+  DOCKERHUB_USERNAME: "bodiagoogle"
+  CPUS: 2
+  MEMORY: 134217728
+
+jobs:
+  linter_analysis:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Run Super-Linter
+      uses: github/super-linter@v4
+      env:  
+        DEFAULT_BRANCH: main
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        VALIDATE_JAVASCRIPT_STANDARD: false
+  docker_build_push:
+    runs-on: ubuntu-latest
+    needs: linter_analysis
+    if: ${{ success() }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag "$IMAGE_NAME":"$TAG"
+    - name: Login with credentials
+      if: success()
+      run: docker login -u "$DOCKERHUB_USERNAME" -p ${{secrets.DOCKERHUB_PASSWORD}}
+    - name: Apply tag
+      run: docker tag "$IMAGE_NAME":"$TAG" "$DOCKERHUB_HOST""$DOCKERHUB_USERNAME"/"$IMAGE_NAME":"$TAG"
+    - name: Push an image to the docker hub
+      run: docker push "$DOCKERHUB_HOST""$DOCKERHUB_USERNAME"/"$IMAGE_NAME":"$TAG"
+      
+  # healthcheck:
+  #   runs-on: ubuntu-latest
+  #   # needs: docker_push
+  #   # if: ${{ success() }}
+  #   steps:
+  #     - name: Pull image from dockerhub
+  #       run: docker pull "$DOCKERHUB_USERNAME"/"$IMAGE_NAME":"$TAG"
+  #     - name: Run container
+  #       run: docker run -d -p 80:8080 -c "$CPUS" -m "$MEMORY" --name node-api "$DOCKERHUB_USERNAME"/"$IMAGE_NAME":"$TAG"
+  #     - name: Sleep for 5 seconds
+  #       run: sleep 20
+  #     - name: "[DEBUG] simple ping"
+  #       run: ping http://localhost:80/api
+  #     - name: Ping container
+  #       run: |
+  #         status=$(curl --write-out "%{http_code}" --silent --output /dev/null http://localhost:80/api)
+  #         if [ "$status" -eq 200 ]; then
+  #           echo "Healthcheck passed"
+  #         else
+  #           echo "Healthcheck failed with status code $status"
+  #           exit 1
+  #         fi
