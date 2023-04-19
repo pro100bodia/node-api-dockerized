@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-api-dockerized-deployment
+  labels:
+    app: node-api-dockerized
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: node-api-dockerized
+  template:
+    metadata:
+      labels:
+        app: node-api-dockerized
+    spec:
+      containers:
+        - name: node-api-dockerized
+          image: bodiagoogle/node-api-dockerized:latest
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /api
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
